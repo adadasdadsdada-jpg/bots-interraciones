@@ -1,16 +1,39 @@
 {
-  "name": "discord-verification-bot",
-  "version": "1.0.0",
-  "description": "Bot de verificación del staff para Discord",
+  "name": "discord-multi-bot",
+  "version": "2.0.0",
+  "description": "Multi-bot staff system for Discord with verification and moderation",
   "main": "bot.js",
   "scripts": {
     "start": "node multi-bot.js",
     "dev": "node multi-bot.js",
-    "build": "echo 'No build step required'"
+    "fiestas": "node src/bot-fiestas.js",
+    "bot3": "node bot3.js",
+    "bot3:v2": "node bot3.v2.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "echo 'No linter configured'"
   },
   "dependencies": {
     "axios": "^1.15.1",
+    "better-sqlite3": "^12.9.0",
     "discord.js": "^14.14.0",
-    "dotenv": "^16.3.1"
-  }
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "verification",
+    "staff",
+    "multi-bot"
+  ],
+  "author": "Staff Bot System",
+  "license": "MIT"
 }

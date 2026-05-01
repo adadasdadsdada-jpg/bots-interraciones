@@ -1,4 +1,11 @@
 node_modules/
 .env
-*.env
+logs_bot3/
+*.log
+dist/
 .DS_Store
+coverage/
+.nyc_output/
+*.db
+data/*.json
+!data/.gitkeep

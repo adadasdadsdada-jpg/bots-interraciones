@@ -45,7 +45,7 @@ async function handleModalVerificar(interaction, pendingVerifications) {
  */
 async function handleModalDm(interaction) {
     const mensaje = interaction.fields.getTextInputValue('input_mensaje');
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     const guild = interaction.guild;
     let enviados = 0, errores = 0;
@@ -82,7 +82,7 @@ async function handleModalDm(interaction) {
  * @returns {Promise<boolean>} Si fue exitoso
  */
 async function handleModalRegistrar(interaction, usuariosRegistrados) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     const usuarioTexto = interaction.fields.getTextInputValue('input_usuario');
     const nombreIC = interaction.fields.getTextInputValue('input_nombre');

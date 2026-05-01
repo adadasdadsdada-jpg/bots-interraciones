@@ -616,7 +616,7 @@ async function handleModalSubmit(interaction) {
     
     else if (customId === 'modal_dm') {
         const mensaje = interaction.fields.getTextInputValue('input_mensaje');
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
         
         const guild = interaction.guild;
         let enviados = 0, errores = 0;
@@ -670,7 +670,7 @@ async function handleModalSubmit(interaction) {
     }
     
     else if (customId === 'modal_registrar') {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
         
         const usuarioTexto = interaction.fields.getTextInputValue('input_usuario');
         const nombreIC = interaction.fields.getTextInputValue('input_nombre');

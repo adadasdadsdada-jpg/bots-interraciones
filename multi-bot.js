@@ -131,16 +131,87 @@ mapeoNick: {
         usuarios: {
             dev: process.env.BOT2_DEV_USER_ID || ''
         }
+    },
+    fiestas: {
+        nombre: 'FIESTAS',
+        token: process.env.FIESTAS_TOKEN || '',
+        serverId: process.env.FIESTAS_SERVER_ID || '1498519623774244985',
+        canales: {
+            solicitudes: process.env.FIESTAS_CHANNEL_RECEPCION || '1498534574161002577',
+            logs: process.env.FIESTAS_LOG_CHANNEL || '1498534563549417654',
+            aceptados: process.env.FIESTAS_CHANNEL_ACEPTADOS || '1498534571417796660',
+            rechazados: process.env.FIESTAS_CHANNEL_RECHAZADOS || '1498534572684738582',
+            setsPendientes: process.env.FIESTAS_CHANNEL_SETS_PENDIENTES || '1498534574161002577',
+            setsAceptados: process.env.FIESTAS_CHANNEL_SETS_ACEPTADOS || '1498534571417796660',
+            setsRechazados: process.env.FIESTAS_CHANNEL_SETS_RECHAZADOS || '1498534575826014259'
+        },
+        roles: {
+            dev: process.env.FIESTAS_ROLE_DEV || '1498520261228630016',
+            altaCupula: process.env.FIESTAS_ROLE_ALTA_CUPULA || '1498534443206443047',
+            respInt: process.env.FIESTAS_ROLE_RESP_INT || '1498534444460671077',
+            adm: process.env.FIESTAS_ROLE_ADM || '1498534444179656885',
+            aux: process.env.FIESTAS_ROLE_AUX || '1498534445060329504',
+            lid: process.env.FIESTAS_ROLE_LID || '1498534445886472254',
+            sub: process.env.FIESTAS_ROLE_SUB || '1498534447069401130',
+            miembro: process.env.FIESTAS_ROLE_MIEMBRO || '1498534448684208289',
+            tester: process.env.FIESTAS_ROLE_TESTER || '1498534449770663966'
+        },
+        prefijos: {
+            dev: 'DEV.FT',
+            altaCupula: '🔥',
+            respInt: 'Resp.INT|💀',
+            adm: 'ADM.FT |🎉',
+            aux: 'Aux.FT |🎉',
+            lid: 'Lid.FT |🎉',
+            sub: 'Sub.FT |🎉',
+            miembro: 'FT |🎉',
+            tester: 'FT-T |🎉'
+        },
+        mapeoNick: {
+            dev: 'DEV.FT',
+            altaCupula: '🔥',
+            respInt: 'Resp.INT',
+            adm: 'ADM.FT',
+            aux: 'Aux.FT',
+            lid: 'Lid.FT',
+            sub: 'Sub.FT',
+            miembro: 'FT',
+            tester: 'FT-T'
+        },
+        mensajeAprobado: {
+            titulo: '🎆 SISTEMA DE VERIFICACIÓN — APROBADO',
+            descripcion: '✨ **¡Bienvenido a FIESTAS!** ✨\n\nJuntos hacemos que cada noche sea inolvidable.',
+            nota: 'Tu apodo ha sido actualizado en el servidor. Si no lo ves, contacta a un administrador.',
+            footer: 'Staff FIESTAS - "Juntos hacemos que cada noche sea inolvidable"'
+        },
+        textos: {
+            nombreCorto: 'Fiestas',
+            nombreLargo: 'Staff Fiestas',
+            emoji: '🎉',
+            tituloPanel: '🛡️ Sistema de Verificación | Staff Fiestas',
+            descPanel: '**BIENVENIDO AL SISTEMA DE VERIFICACIÓN**\nSolicita tu acceso al staff',
+            footerPanel: 'Staff Fiestas v2.0',
+            notaPanel: 'Alta Cúpula solo puede ser aprobado por DEV o Alta Cúpula'
+        },
+        usuarios: {
+            dev: process.env.FIESTAS_DEV_USER_ID || ''
+        }
     }
 };
 
 // Mapeo de roles disponibles por bot
 const AVAILABLE_ROLES_BY_BOT = {
-    bot1: {
-        // Tus roles actuales
-    },
-    bot2: {
-        // Roles del Bot 2 (ajusta según tu servidor)
+    bot1: {},
+    bot2: {},
+    fiestas: {
+        '1498534443206443047': '🔥 Alta Cúpula',
+        '1498534444460671077': '💀 Resp.INT',
+        '1498534444179656885': '🎉 ADM',
+        '1498534445060329504': '🎉 AUX',
+        '1498534445886472254': '🎉 LID',
+        '1498534447069401130': '🎉 SUB',
+        '1498534448684208289': '🎉 MIEMBRO',
+        '1498534449770663966': '🎉 TESTER'
     }
 };
 
@@ -190,11 +261,19 @@ class BotStaff {
     
     // Helper para obtener nombre corto
     getNombreCorto() {
-        return this.key === 'bot1' ? 'Eventos' : 'Entretenimiento';
+        if (this.key === 'bot1') return 'Eventos';
+        if (this.key === 'bot2') return 'Entretenimiento';
+        if (this.key === 'fiestas') return 'Fiestas';
+        return this.key;
     }
     
     getAvailableRoles() {
-        // Mapea los roles del config con nombres
+        // Primero verificar si existe en AVAILABLE_ROLES_BY_BOT
+        if (AVAILABLE_ROLES_BY_BOT[this.key]) {
+            return AVAILABLE_ROLES_BY_BOT[this.key];
+        }
+
+        // Fallback: mapear roles del config con nombres
         const roles = {};
         const nombresRoles = {
             dev: 'DEV',
@@ -204,9 +283,11 @@ class BotStaff {
             lid: 'Lid',
             sub: 'Sub',
             miembro: 'Miembro',
-            tester: 'Tester'
+            tester: 'Tester',
+            altaCupula: 'Alta Cúpula',
+            respInt: 'Resp.INT'
         };
-        
+
         for (const [key, value] of Object.entries(this.config.roles)) {
             if (key !== 'dev' && value) {
                 roles[value] = nombresRoles[key] || key;
@@ -237,23 +318,36 @@ class BotStaff {
     }
     
     generarNickname(rolKey, nombreIC, idIC) {
-        // Formato especial para Responsable
+        // FIESTAS special formats
+        if (this.key === 'fiestas') {
+            if (rolKey === 'altacupula' || rolKey === '🔥 alta cúpula') {
+                return `🔥 ${nombreIC}`;
+            }
+            if (rolKey === 'respint' || rolKey === '💀 resp.int') {
+                return `Resp.INT|💀 ${nombreIC}`;
+            }
+            // FIESTAS standard format: "FT |🎉Nombre | ID"
+            const mapeoKey = rolKey.toLowerCase().replace('🎉 ', '').replace('🔥 ', 'alta').replace('💀 ', 'resp');
+            const prefijo = this.config.mapeoNick?.[rolKey] || this.config.prefijos?.[rolKey] || 'FT';
+            return `${prefijo} |🎉${nombreIC} | ${idIC}`;
+        }
+
+        // Formato especial para Responsable (bot1, bot2)
         if (rolKey === 'responsable') {
             return `Resp.INT | 💀${nombreIC} #BuenaGente`;
         }
-        
+
         // Obtener prefijo según el rol
         const prefijo = this.config.prefijos?.[rolKey] || (this.key === 'bot1' ? 'EvT 🎪' : 'ENT 🎆');
-        
+
         // Extraer solo el nombre del rol (quitar el emoji del inicio)
-        // Ej: "🎆┋Lid.ENT" -> "Lid.ENT" o "Aux.EVT 🎪" -> "Aux.EVT"
-        const nombreRol = prefijo.includes('┋') 
-            ? prefijo.split('┋')[1].trim() 
+        const nombreRol = prefijo.includes('┋')
+            ? prefijo.split('┋')[1].trim()
             : prefijo.replace('🎪', '').replace('🎆', '').replace('🤖', '').trim();
-        
+
         // Obtener el emoji según el bot
         const emoji = this.key === 'bot1' ? '🎪' : '🎆';
-        
+
         return `${nombreRol} | ${emoji}${nombreIC} | ${idIC}`;
     }
     
@@ -291,13 +385,22 @@ class BotStaff {
         
         // Interaction
         this.client.on('interactionCreate', async (interaction) => {
+            // Ignorar interacciones de otros servidores
+            if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
+            if (interaction._handled) return;
+            interaction._handled = true;
+
             try {
                 if (interaction.isChatInputCommand()) await bot.handleSlashCommand(interaction);
                 else if (interaction.isButton()) await bot.handleButton(interaction);
                 else if (interaction.isStringSelectMenu()) await bot.handleSelectMenu(interaction);
                 else if (interaction.isModalSubmit()) await bot.handleModalSubmit(interaction);
             } catch (error) {
-                console.error(`[${this.getNombreCorto()}] Error:`, error);
+                if (error.code === 40060) {
+                    console.log(`[${bot.getNombreCorto()}] Interacción ya procesada`);
+                } else {
+                    console.error(`[${bot.getNombreCorto()}] Error:`, error);
+                }
             }
         });
         
@@ -330,7 +433,10 @@ class BotStaff {
     
     async handleSlashCommand(interaction) {
         const { commandName } = interaction;
-        
+
+        // Ignorar comandos de otros servidores
+        if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
+
         if (commandName === 'panel') {
             const txt = this.config.textos || {};
             const embed = new EmbedBuilder()
@@ -522,7 +628,7 @@ class BotStaff {
         
         else if (customId === 'modal_dm') {
             const mensaje = interaction.fields.getTextInputValue('input_mensaje');
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: 64 });
             
             const guild = interaction.guild;
             let enviados = 0, errores = 0;
@@ -530,8 +636,10 @@ class BotStaff {
             const rolesConPermiso = Object.values(this.config.roles).filter(Boolean);
             const mensajeFormateado = `📨 **MENSAJE DEL STAFF**\n\n${mensaje}`;
             
-            // Rol excluido de mensajes (solo para bot1 - Alta Cupula no recibe DM)
-            const ROL_EXCLUIDO = this.key === 'bot1' ? '1495090186885922979' : null;
+            // Rol excluido de mensajes (Alta Cupula y Resp.INT no reciben DM)
+            const rolesExcluidos = [];
+            if (this.config.roles.altaCupula) rolesExcluidos.push(this.config.roles.altaCupula);
+            if (this.config.roles.respInt) rolesExcluidos.push(this.config.roles.respInt);
             
             if (guild) {
                 const allMembers = await guild.members.fetch();
@@ -539,8 +647,8 @@ class BotStaff {
                 for (const [userId, member] of allMembers) {
                     if (member.user.bot) continue;
                     
-                    // Excluir al rol Alta Cupula de recibir mensajes (solo bot1)
-                    if (ROL_EXCLUIDO && member.roles.cache.has(ROL_EXCLUIDO)) continue;
+                    // Excluir roles de Alta Cupula y Resp.INT de recibir mensajes
+                    if (rolesExcluidos.length > 0 && member.roles.cache.has(rolesExcluidos[0])) continue;
                     
                     const tieneRol = member.roles.cache.some(rol => rolesConPermiso.includes(rol.id));
                     if (!tieneRol) continue;
@@ -584,7 +692,7 @@ class BotStaff {
         }
         
         else if (customId === 'modal_registrar') {
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: 64 });
             
             const usuarioTexto = interaction.fields.getTextInputValue('input_usuario');
             const nombreIC = interaction.fields.getTextInputValue('input_nombre');
@@ -777,7 +885,11 @@ class BotStaff {
                                 'Lid': 'lid',
                                 'Sub': 'sub',
                                 'Miembro': 'miembro',
-                                'Tester': 'tester'
+                                'Tester': 'tester',
+                                '🔥 Alta Cúpula': 'altaCupula',
+                                '💀 Resp.INT': 'respInt',
+                                'Alta Cúpula': 'altaCupula',
+                                'Resp.INT': 'respInt'
                             };
                             return mapeoNombres[rangoSolicitado] === key;
                         })?.[1];
