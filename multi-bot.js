@@ -795,7 +795,7 @@ class BotStaff {
         
         const rangoId = interaction.values[0];
         const availableRoles = this.getAvailableRoles();
-        const rangoNombre = availableRoles[rangoId];
+        const rangoNombre = availableRoles[rangoId] || rangoId || 'Desconocido';
         const datos = this.pendingVerifications.get(interaction.user.id);
         
         if (!datos) {
@@ -805,18 +805,24 @@ class BotStaff {
         
         const { nombreIC, idIC } = datos;
         this.pendingVerifications.delete(interaction.user.id);
-        
+
+        const safeNombreIC = String(nombreIC || 'N/A').substring(0, 1024);
+        const safeIdIC = String(idIC || 'N/A').substring(0, 1024);
+        const safeRango = String(rangoNombre || 'Desconocido').substring(0, 1024);
+
+        console.log(`[${this.getNombreCorto()}] Creating embed with: nombreIC=${safeNombreIC}, idIC=${safeIdIC}, rango=${safeRango}`);
+
         const embed = new EmbedBuilder()
             .setTitle('📋 Nueva Solicitud')
-            .setDescription(`**Solicitante:** ${interaction.user}`)
+            .setDescription(`**Solicitante:** ${interaction.user ? interaction.user.toString() : 'Unknown'}`)
             .setColor(255, 165, 0)
-            .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true, size: 128 }))
+            .setThumbnail(interaction.user?.displayAvatarURL({ dynamic: true, size: 128 }))
             .addFields(
-                { name: 'Nombre IC', value: nombreIC, inline: true },
-                { name: 'ID', value: idIC, inline: true },
-                { name: 'Rango', value: rangoNombre, inline: true }
+                { name: 'Nombre IC', value: safeNombreIC, inline: true },
+                { name: 'ID', value: safeIdIC, inline: true },
+                { name: 'Rango', value: safeRango, inline: true }
             )
-            .setFooter({ text: `ID: ${interaction.user.id}` })
+            .setFooter({ text: `ID: ${interaction.user ? interaction.user.id : 'unknown'}` })
             .setTimestamp();
         
         const row = new ActionRowBuilder().addComponents(
