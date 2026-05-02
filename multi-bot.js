@@ -336,36 +336,35 @@ class BotStaff {
     }
     
     generarNickname(rolKey, nombreIC, idIC) {
-        // FIESTAS special formats
+        const rangoNormalizado = rolKey.toLowerCase()
+            .replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
+            .replace('🎪', '').replace('🎆', '').replace('🔥', '').replace('💀', '')
+            .replace('adm', 'adm').replace('aux', 'aux').replace('lid', 'lid')
+            .replace('sub', 'sub').replace('miembro', 'miembro').replace('tester', 'tester')
+            .replace('alta cúpula', 'altacupula').replace('alta cupula', 'altacupula')
+            .replace('resp. int', 'respint').replace('resp int', 'respint').trim();
+
         if (this.key === 'fiestas') {
-            if (rolKey === 'altacupula' || rolKey === '🔥 alta cúpula') {
+            if (rangoNormalizado === 'altacupula') {
                 return `🔥 ${nombreIC}`;
             }
-            if (rolKey === 'respint' || rolKey === '💀 resp.int') {
+            if (rangoNormalizado === 'respint') {
                 return `Resp.INT|💀 ${nombreIC}`;
             }
-            // FIESTAS standard format: "FT |🎉Nombre | ID"
-            const mapeoKey = rolKey.toLowerCase().replace('🎉 ', '').replace('🔥 ', 'alta').replace('💀 ', 'resp');
             const prefijo = this.config.mapeoNick?.[rolKey] || this.config.prefijos?.[rolKey] || 'FT';
             return `${prefijo} |🎉${nombreIC} | ${idIC}`;
         }
 
-        // Formato especial para Responsable (bot1, bot2)
-        if (rolKey === 'responsable') {
+        if (rangoNormalizado === 'responsable') {
             return `Resp.INT | 💀${nombreIC} #BuenaGente`;
         }
 
-        // Obtener prefijo según el rol
-        const prefijo = this.config.prefijos?.[rolKey] || (this.key === 'bot1' ? 'EvT 🎪' : 'ENT 🎆');
-
-        // Extraer solo el nombre del rol (quitar el emoji del inicio)
+        const prefijo = this.config.prefijos?.[rangoNormalizado] || (this.key === 'bot1' ? 'EvT 🎪' : 'ENT 🎆');
         const nombreRol = prefijo.includes('┋')
             ? prefijo.split('┋')[1].trim()
             : prefijo.replace('🎪', '').replace('🎆', '').replace('🤖', '').trim();
 
-        // Obtener el emoji según el bot
         const emoji = this.key === 'bot1' ? '🎪' : '🎆';
-
         return `${nombreRol} | ${emoji}${nombreIC} | ${idIC}`;
     }
     
@@ -981,23 +980,21 @@ class BotStaff {
                         this.usuariosRegistrados.set(solicitanteId, { nombreIC: nombre, idIC: idIC });
                         
                         // Buscar el ID del rol según el nombre del rango
+                        const rangoLower = rangoSolicitado.toLowerCase();
                         const rolId = Object.entries(this.config.roles).find(([key, id]) => {
-                            // Mapear nombres de rol a keys
                             const mapeoNombres = {
-                                'DEV': 'dev',
-                                'ADM': 'adm',
-                                'Responsable': 'responsable',
-                                'Aux': 'aux',
-                                'Lid': 'lid',
-                                'Sub': 'sub',
-                                'Miembro': 'miembro',
-                                'Tester': 'tester',
-                                '🔥 Alta Cúpula': 'altaCupula',
-                                '💀 Resp.INT': 'respInt',
-                                'Alta Cúpula': 'altaCupula',
-                                'Resp.INT': 'respInt'
+                                'dev': ['dev', 'DEV', 'Dev'],
+                                'adm': ['adm', 'ADM', 'Adm'],
+                                'responsable': ['responsable', 'Responsable', 'RESPONSABLE'],
+                                'aux': ['aux', 'AUX', 'Aux'],
+                                'lid': ['lid', 'LID', 'Lid'],
+                                'sub': ['sub', 'SUB', 'Sub'],
+                                'miembro': ['miembro', 'MIEMBRO', 'Miembro'],
+                                'tester': ['tester', 'TESTER', 'Tester'],
+                                'altacupula': ['alta cupula', 'alta cúpula', 'Alta Cúpula', 'ALTA CÚPULA', '🔥 alta cúpula'],
+                                'respint': ['resp int', 'resp. int', 'Resp.INT', 'respint', '💀 resp. int']
                             };
-                            return mapeoNombres[rangoSolicitado] === key;
+                            return mapeoNombres[key]?.includes(rangoLower);
                         })?.[1];
                         
                         if (rolId) {
