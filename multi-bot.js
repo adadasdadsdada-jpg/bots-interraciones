@@ -572,10 +572,11 @@ class BotStaff {
         if (interaction.replied || interaction.deferred) return;
 
         if (interaction.customId === 'btn_verificar') {
+            console.log(`[${this.getNombreCorto()}] Button handler: showing modal for ${interaction.user.tag}`);
             const modal = new ModalBuilder()
                 .setCustomId('modal_verificar')
                 .setTitle('🛡️ Verificación');
-            
+
             const nombreIC = new TextInputBuilder()
                 .setCustomId('input_nombre')
                 .setLabel('✏️ Nombre IC')
@@ -583,7 +584,7 @@ class BotStaff {
                 .setStyle(TextInputStyle.Short)
                 .setRequired(true)
                 .setMaxLength(50);
-            
+
             const idIC = new TextInputBuilder()
                 .setCustomId('input_id')
                 .setLabel('🎮 ID')
@@ -591,13 +592,21 @@ class BotStaff {
                 .setStyle(TextInputStyle.Short)
                 .setRequired(true)
                 .setMaxLength(20);
-            
+
             modal.addComponents(
                 new ActionRowBuilder().addComponents(nombreIC),
                 new ActionRowBuilder().addComponents(idIC)
             );
-            
-            await interaction.showModal(modal);
+
+            try {
+                await interaction.deferReply({ ephemeral: true });
+                await interaction.showModal(modal);
+                console.log(`[${this.getNombreCorto()}] Modal shown successfully`);
+            } catch (err) {
+                console.error(`[${this.getNombreCorto()}] showModal error:`, err.message);
+                console.error(`[${this.getNombreCorto()}] Error code: ${err.code}`);
+                console.error(`[${this.getNombreCorto()}] showModal stack:`, err.stack);
+            }
         }
         else if (interaction.customId === 'btn_aceptar' || interaction.customId === 'btn_rechazar') {
             await this.handleAcceptReject(interaction);
