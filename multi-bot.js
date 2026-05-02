@@ -396,11 +396,9 @@ class BotStaff {
                 else if (interaction.isStringSelectMenu()) await bot.handleSelectMenu(interaction);
                 else if (interaction.isModalSubmit()) await bot.handleModalSubmit(interaction);
             } catch (error) {
-                if (error.code === 40060) {
-                    console.log(`[${bot.getNombreCorto()}] Interacción ya procesada`);
-                } else {
-                    console.error(`[${bot.getNombreCorto()}] Error:`, error);
-                }
+                console.error(`[${bot.getNombreCorto()}] Interaction error:`, error.message);
+                if (error.code) console.error(`[${bot.getNombreCorto()}] Error code: ${error.code}`);
+                if (error.stack) console.error(`[${bot.getNombreCorto()}] Stack: ${error.stack}`);
             }
         });
         
