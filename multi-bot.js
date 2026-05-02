@@ -199,9 +199,18 @@ mapeoNick: {
     }
 };
 
-// Mapeo de roles disponibles por bot
+// Mapeo de roles disponibles por bot - construye dinámicamente desde .env
 const AVAILABLE_ROLES_BY_BOT = {
-    bot1: {},
+    bot1: {
+        [process.env.BOT1_ALTA_CUPULA_ID || '']: 'Alta Cúpula',
+        [process.env.BOT1_RESPONSABLE_ID || '']: 'Responsable',
+        [process.env.BOT1_ADM_ROLE_ID || '']: 'ADM',
+        [process.env.BOT1_AUX_ID || '']: 'AUX',
+        [process.env.BOT1_LID_ID || '']: 'LID',
+        [process.env.BOT1_SUB_ID || '']: 'SUB',
+        [process.env.BOT1_MIEMBRO_ID || '']: 'MIEMBRO',
+        [process.env.BOT1_TESTER_ID || '']: 'TESTER'
+    },
     bot2: {},
     fiestas: {
         '1498534443206443047': '🔥 Alta Cúpula',
@@ -269,12 +278,20 @@ class BotStaff {
     
     getAvailableRoles() {
         // Primero verificar si existe en AVAILABLE_ROLES_BY_BOT
-        if (AVAILABLE_ROLES_BY_BOT[this.key]) {
-            return AVAILABLE_ROLES_BY_BOT[this.key];
+        const rawRoles = AVAILABLE_ROLES_BY_BOT[this.key] || {};
+        const roles = {};
+        for (const [id, name] of Object.entries(rawRoles)) {
+            if (id && name) {
+                roles[id] = name;
+            }
+        }
+
+        if (Object.keys(roles).length > 0) {
+            console.log(`[${this.getNombreCorto()}] getAvailableRoles:`, JSON.stringify(roles));
+            return roles;
         }
 
         // Fallback: mapear roles del config con nombres
-        const roles = {};
         const nombresRoles = {
             dev: 'DEV',
             adm: 'ADM',
@@ -293,6 +310,7 @@ class BotStaff {
                 roles[value] = nombresRoles[key] || key;
             }
         }
+        console.log(`[${this.getNombreCorto()}] getAvailableRoles fallback:`, JSON.stringify(roles));
         return roles;
     }
     
@@ -375,10 +393,30 @@ class BotStaff {
             const nombreCorto = this.getNombreCorto();
             console.log(`\n✅ [${nombreCorto}] Bot conectado: ${bot.client.user.tag}`);
             console.log(`📛 [${nombreCorto}] ID: ${bot.client.user.id}`);
-            
+
             const guild = bot.client.guilds.cache.first();
             if (guild) {
                 console.log(`📗 [${nombreCorto}] Servidor: ${guild.name}`);
+                console.log(`📗 [${nombreCorto}] Server ID: ${guild.id}`);
+
+                // Debug: listar TODOS los roles del servidor
+                const roles = await guild.roles.fetch();
+                console.log(`\n📋 [${nombreCorto}] === ROLES DEL SERVIDOR ===`);
+                console.log(`   Server ID: ${guild.id}`);
+                for (const [id, role] of roles) {
+                    if (!role.managed && role.name !== '@everyone') {
+                        console.log(`   "${role.name}": "${id}",`);
+                    }
+                }
+
+                // Mostrar roles configurados vs roles del servidor
+                console.log(`\n📋 [${nombreCorto}] === ROLES CONFIGURADOS ===`);
+                for (const [key, id] of Object.entries(this.config.roles)) {
+                    const serverRole = roles.find(r => r.id === id);
+                    const status = serverRole ? `✅ ${serverRole.name}` : '❌ NO ENCONTRADO';
+                    console.log(`   ${key}: ${id} -> ${status}`);
+                }
+
                 bot.registrarComandos(guild);
             }
         });
