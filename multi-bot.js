@@ -568,6 +568,9 @@ class BotStaff {
     }
     
     async handleButton(interaction) {
+        if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
+        if (interaction.replied || interaction.deferred) return;
+
         if (interaction.customId === 'btn_verificar') {
             const modal = new ModalBuilder()
                 .setCustomId('modal_verificar')
@@ -602,6 +605,9 @@ class BotStaff {
     }
     
     async handleModalSubmit(interaction) {
+        if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
+        if (interaction.replied || interaction.deferred) return;
+
         const { customId } = interaction;
         
         if (customId === 'modal_verificar') {
@@ -729,6 +735,8 @@ class BotStaff {
     }
     
     async handleSelectMenu(interaction) {
+        if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
+        if (interaction.replied || interaction.deferred) return;
         if (interaction.customId !== 'select_rango') return;
         
         const rangoId = interaction.values[0];
