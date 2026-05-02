@@ -385,16 +385,36 @@ class BotStaff {
         
         // Interaction
         this.client.on('interactionCreate', async (interaction) => {
+            console.log(`[${this.getNombreCorto()}] Interaction received: ${interaction.type}, commandName=${interaction.commandName || 'N/A'}, customId=${interaction.customId || 'N/A'}`);
+
             // Ignorar interacciones de otros servidores
-            if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
+            if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) {
+                console.log(`[${this.getNombreCorto()}] Ignored - wrong server: ${interaction.guild?.id}`);
+                return;
+            }
             // Ignorar si ya fue respondida
-            if (interaction.replied || interaction.deferred) return;
+            if (interaction.replied || interaction.deferred) {
+                console.log(`[${this.getNombreCorto()}] Ignored - already replied/deferred`);
+                return;
+            }
 
             try {
-                if (interaction.isChatInputCommand()) await this.handleSlashCommand(interaction);
-                else if (interaction.isButton()) await this.handleButton(interaction);
-                else if (interaction.isStringSelectMenu()) await this.handleSelectMenu(interaction);
-                else if (interaction.isModalSubmit()) await this.handleModalSubmit(interaction);
+                if (interaction.isChatInputCommand()) {
+                    console.log(`[${this.getNombreCorto()}] Handling slash command: ${interaction.commandName}`);
+                    await this.handleSlashCommand(interaction);
+                }
+                else if (interaction.isButton()) {
+                    console.log(`[${this.getNombreCorto()}] Handling button: ${interaction.customId}`);
+                    await this.handleButton(interaction);
+                }
+                else if (interaction.isStringSelectMenu()) {
+                    console.log(`[${this.getNombreCorto()}] Handling select: ${interaction.customId}`);
+                    await this.handleSelectMenu(interaction);
+                }
+                else if (interaction.isModalSubmit()) {
+                    console.log(`[${this.getNombreCorto()}] Handling modal: ${interaction.customId}`);
+                    await this.handleModalSubmit(interaction);
+                }
             } catch (error) {
                 console.error(`[${this.getNombreCorto()}] Interaction error:`, error.message);
                 if (error.code) console.error(`[${this.getNombreCorto()}] Error code: ${error.code}`);
@@ -430,6 +450,8 @@ class BotStaff {
     }
     
     async handleSlashCommand(interaction) {
+        console.log(`[${this.getNombreCorto()}] handleSlashCommand started for: ${interaction.commandName}`);
+
         const { commandName } = interaction;
 
         // Ignorar comandos de otros servidores
@@ -568,6 +590,8 @@ class BotStaff {
     }
     
     async handleButton(interaction) {
+        console.log(`[${this.getNombreCorto()}] handleButton started for: ${interaction.customId}`);
+
         if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
         if (interaction.replied || interaction.deferred) return;
 
@@ -599,7 +623,6 @@ class BotStaff {
             );
 
             try {
-                await interaction.deferReply({ ephemeral: true });
                 await interaction.showModal(modal);
                 console.log(`[${this.getNombreCorto()}] Modal shown successfully`);
             } catch (err) {
@@ -614,6 +637,8 @@ class BotStaff {
     }
     
     async handleModalSubmit(interaction) {
+        console.log(`[${this.getNombreCorto()}] handleModalSubmit started for: ${interaction.customId}`);
+
         if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
         if (interaction.replied || interaction.deferred) return;
 
@@ -744,6 +769,8 @@ class BotStaff {
     }
     
     async handleSelectMenu(interaction) {
+        console.log(`[${this.getNombreCorto()}] handleSelectMenu started for: ${interaction.customId}`);
+
         if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
         if (interaction.replied || interaction.deferred) return;
         if (interaction.customId !== 'select_rango') return;
