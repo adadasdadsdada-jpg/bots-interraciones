@@ -391,14 +391,14 @@ class BotStaff {
             if (interaction.replied || interaction.deferred) return;
 
             try {
-                if (interaction.isChatInputCommand()) await bot.handleSlashCommand(interaction);
-                else if (interaction.isButton()) await bot.handleButton(interaction);
-                else if (interaction.isStringSelectMenu()) await bot.handleSelectMenu(interaction);
-                else if (interaction.isModalSubmit()) await bot.handleModalSubmit(interaction);
+                if (interaction.isChatInputCommand()) await this.handleSlashCommand(interaction);
+                else if (interaction.isButton()) await this.handleButton(interaction);
+                else if (interaction.isStringSelectMenu()) await this.handleSelectMenu(interaction);
+                else if (interaction.isModalSubmit()) await this.handleModalSubmit(interaction);
             } catch (error) {
-                console.error(`[${bot.getNombreCorto()}] Interaction error:`, error.message);
-                if (error.code) console.error(`[${bot.getNombreCorto()}] Error code: ${error.code}`);
-                if (error.stack) console.error(`[${bot.getNombreCorto()}] Stack: ${error.stack}`);
+                console.error(`[${this.getNombreCorto()}] Interaction error:`, error.message);
+                if (error.code) console.error(`[${this.getNombreCorto()}] Error code: ${error.code}`);
+                if (error.stack) console.error(`[${this.getNombreCorto()}] Stack: ${error.stack}`);
             }
         });
         
