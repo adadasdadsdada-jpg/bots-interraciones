@@ -653,10 +653,28 @@ class BotStaff {
             const selectMenu = new StringSelectMenuBuilder()
                 .setCustomId('select_rango')
                 .setPlaceholder('Selecciona tu rango...');
-            
+
             const availableRoles = this.getAvailableRoles();
-            for (const [id, name] of Object.entries(availableRoles)) {
-                if (id && name) selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel(name).setValue(id));
+            console.log(`[${this.getNombreCorto()}] availableRoles count: ${Object.keys(availableRoles || {}).length}`);
+            console.log(`[${this.getNombreCorto()}] availableRoles:`, JSON.stringify(availableRoles || {}));
+
+            if (!availableRoles || Object.keys(availableRoles).length === 0) {
+                console.log(`[${this.getNombreCorto()}] No available roles, using fallback`);
+                selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel('Miembro').setValue('1490174280170737798'));
+            } else {
+                for (const [id, name] of Object.entries(availableRoles)) {
+                    if (id && name) {
+                        console.log(`[${this.getNombreCorto()}] Adding option: ${id} -> ${name}`);
+                        selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel(name).setValue(id));
+                    }
+                }
+            }
+
+            console.log(`[${this.getNombreCorto()}] selectMenu options count: ${selectMenu.options.length}`);
+
+            if (selectMenu.options.length === 0) {
+                await interaction.reply({ content: '❌ No hay roles disponibles. Contacta a un admin.', flags: 64 });
+                return;
             }
             
             await interaction.reply({
