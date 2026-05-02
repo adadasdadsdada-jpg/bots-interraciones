@@ -387,8 +387,8 @@ class BotStaff {
         this.client.on('interactionCreate', async (interaction) => {
             // Ignorar interacciones de otros servidores
             if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
-            if (interaction._handled) return;
-            interaction._handled = true;
+            // Ignorar si ya fue respondida
+            if (interaction.replied || interaction.deferred) return;
 
             try {
                 if (interaction.isChatInputCommand()) await bot.handleSlashCommand(interaction);
@@ -436,6 +436,8 @@ class BotStaff {
 
         // Ignorar comandos de otros servidores
         if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
+        // Ignorar si ya fue respondida
+        if (interaction.replied || interaction.deferred) return;
 
         if (commandName === 'panel') {
             const txt = this.config.textos || {};
