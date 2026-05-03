@@ -1000,6 +1000,14 @@ class BotStaff {
                         if (rolId) {
                             const nuevoRol = await guild.roles.fetch(rolId);
                             if (nuevoRol) {
+                                const rolesADesasignar = Object.values(this.config.roles).filter(id => id && id !== rolId);
+                                for (const rolAntiguoId of rolesADesasignar) {
+                                    const rolAntiguo = await guild.roles.fetch(rolAntiguoId);
+                                    if (rolAntiguo && miembro.roles.cache.has(rolAntiguoId)) {
+                                        await miembro.roles.remove(rolAntiguo);
+                                        console.log(`[${this.getNombreCorto()}] ➖ Rol removido: ${rolAntiguo.name}`);
+                                    }
+                                }
                                 await miembro.roles.add(nuevoRol);
                                 console.log(`[${this.getNombreCorto()}] ➕ Rol asignado: ${nuevoRol.name}`);
                             }
