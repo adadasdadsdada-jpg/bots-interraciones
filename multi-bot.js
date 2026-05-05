@@ -632,43 +632,48 @@ class BotStaff {
         if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
         if (interaction.replied || interaction.deferred) return;
 
-        if (interaction.customId === 'btn_verificar') {
-            console.log(`[${this.getNombreCorto()}] Button handler: showing modal for ${interaction.user.tag}`);
-            const modal = new ModalBuilder()
-                .setCustomId('modal_verificar')
-                .setTitle('🛡️ Verificación');
+        if (interaction.customId === 'btn_verificar' || interaction.customId === 'verify_open_modal') {
+            console.log(`[${this.getNombreCorto()}] Button handler: showing select for ${interaction.user.tag}`);
 
-            const nombreIC = new TextInputBuilder()
-                .setCustomId('input_nombre')
-                .setLabel('✏️ Nombre IC')
-                .setPlaceholder('Tu nombre')
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-                .setMaxLength(50);
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('verify_role_select')
+                .setPlaceholder('Selecciona tu rango...');
 
-            const idIC = new TextInputBuilder()
-                .setCustomId('input_id')
-                .setLabel('🎮 ID')
-                .setPlaceholder('Tu ID')
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-                .setMaxLength(20);
+            const availableRoles = this.getAvailableRoles();
+            console.log(`[${this.getNombreCorto()}] availableRoles count: ${Object.keys(availableRoles || {}).length}`);
 
-            modal.addComponents(
-                new ActionRowBuilder().addComponents(nombreIC),
-                new ActionRowBuilder().addComponents(idIC)
-            );
+            if (!availableRoles || Object.keys(availableRoles).length === 0) {
+                console.log(`[${this.getNombreCorto()}] No available roles, using fallback`);
+                selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel('Miembro').setValue('1490174280170737798'));
+            } else {
+                for (const [id, name] of Object.entries(availableRoles)) {
+                    if (id && name) {
+                        console.log(`[${this.getNombreCorto()}] Adding option: ${id} -> ${name}`);
+                        selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel(name).setValue(id));
+                    }
+                }
+            }
+
+            if (selectMenu.options.length === 0) {
+                await interaction.reply({ content: '❌ No hay roles disponibles. Contacta a un admin.', flags: 64 });
+                return;
+            }
 
             try {
-                await interaction.showModal(modal);
-                console.log(`[${this.getNombreCorto()}] Modal shown successfully`);
+                await interaction.reply({
+                    content: '**Selecciona tu rango:**',
+                    components: [new ActionRowBuilder().addComponents(selectMenu)],
+                    ephemeral: true
+                });
+                console.log(`[${this.getNombreCorto()}] Select menu shown successfully`);
             } catch (err) {
-                console.error(`[${this.getNombreCorto()}] showModal error:`, err.message);
+                console.error(`[${this.getNombreCorto()}] showSelect error:`, err.message);
                 console.error(`[${this.getNombreCorto()}] Error code: ${err.code}`);
-                console.error(`[${this.getNombreCorto()}] showModal stack:`, err.stack);
+                console.error(`[${this.getNombreCorto()}] Error stack:`, err.stack);
             }
         }
-        else if (interaction.customId === 'btn_aceptar' || interaction.customId === 'btn_rechazar') {
+        else if (interaction.customId === 'btn_aceptar' || interaction.customId === 'btn_rechazar' ||
+                 interaction.customId.startsWith('verify_approve_') || interaction.customId.startsWith('verify_reject_')) {
             await this.handleAcceptReject(interaction);
         }
     }
@@ -684,9 +689,9 @@ class BotStaff {
         if (customId === 'modal_verificar') {
             const nombreIC = interaction.fields.getTextInputValue('input_nombre');
             const idIC = interaction.fields.getTextInputValue('input_id');
-            
+
             this.pendingVerifications.set(interaction.user.id, { nombreIC, idIC });
-            
+
             const selectMenu = new StringSelectMenuBuilder()
                 .setCustomId('select_rango')
                 .setPlaceholder('Selecciona tu rango...');
@@ -713,14 +718,77 @@ class BotStaff {
                 await interaction.reply({ content: '❌ No hay roles disponibles. Contacta a un admin.', flags: 64 });
                 return;
             }
-            
+
             await interaction.reply({
                 content: `🎖️ **Datos registrados**\n📝 **Nombre IC:** \`${nombreIC}\`\n🎮 **ID:** \`${idIC}\`\n\n⭐ **Selecciona tu rango:**`,
                 components: [new ActionRowBuilder().addComponents(selectMenu)],
                 flags: 64
             });
         }
-        
+
+        else if (customId === 'verify_modal') {
+            await interaction.deferReply({ ephemeral: true });
+
+            const nombreIC = interaction.fields.getTextInputValue('verify_nombre_ic');
+            const idPersonaje = interaction.fields.getTextInputValue('verify_id_personaje');
+            const rangoId = interaction.fields.getTextInputValue('verify_rango');
+
+            const availableRoles = this.getAvailableRoles();
+            const rangoNombre = availableRoles[rangoId] || rangoId || 'Desconocido';
+
+            const safeNombreIC = String(nombreIC || 'N/A').substring(0, 1024);
+            const safeIdIC = String(idPersonaje || 'N/A').substring(0, 1024);
+            const safeRango = String(rangoNombre || 'Desconocido').substring(0, 1024);
+
+            console.log(`[${this.getNombreCorto()}] verify_modal: nombreIC=${safeNombreIC}, id=${safeIdIC}, rango=${safeRango}`);
+
+            const embed = new EmbedBuilder()
+                .setTitle('📋 Nueva Solicitud')
+                .setDescription(`**Solicitante:** ${interaction.user ? interaction.user.toString() : 'Unknown'}`)
+                .setColor(255, 165, 0)
+                .setThumbnail(interaction.user?.displayAvatarURL({ dynamic: true, size: 128 }))
+                .addFields(
+                    { name: 'Nombre IC', value: safeNombreIC, inline: true },
+                    { name: 'ID', value: safeIdIC, inline: true },
+                    { name: 'Rango', value: safeRango, inline: true }
+                )
+                .setFooter({ text: `ID: ${interaction.user ? interaction.user.id : 'unknown'}` })
+                .setTimestamp();
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('btn_aceptar').setLabel('Aceptar').setStyle(ButtonStyle.Success).setEmoji('✅'),
+                new ButtonBuilder().setCustomId('btn_rechazar').setLabel('Rechazar').setStyle(ButtonStyle.Danger).setEmoji('❌')
+            );
+
+            const guild = interaction.guild;
+            if (guild && this.config.canales.solicitudes) {
+                try {
+                    const canal = await guild.channels.fetch(this.config.canales.solicitudes);
+                    if (canal && canal.type === 0) {
+                        await canal.send({ embeds: [embed], components: [row] });
+                    }
+                } catch (e) {
+                    console.error(`[${this.getNombreCorto()}] Error al enviar:`, e);
+                }
+            }
+
+            await interaction.editReply({ content: '🎖️ **SOLICITUD ENVIADA**\n⏳ Pendiente de revisión', components: [] });
+
+            try {
+                await apiClient.nuevaSolicitud({
+                    bot_id: this.key,
+                    user_id: interaction.user.id,
+                    username: interaction.user.username,
+                    nombre_ic: nombreIC,
+                    id_ic: idPersonaje,
+                    rango: rangoNombre,
+                    estado: 'pendiente'
+                });
+            } catch (e) {
+                console.log(`[${this.getNombreCorto()}] Dashboard API error:`, e.message);
+            }
+        }
+
         else if (customId === 'modal_dm') {
             const mensaje = interaction.fields.getTextInputValue('input_mensaje');
             await interaction.deferReply({ flags: 64 });
@@ -828,8 +896,59 @@ class BotStaff {
 
         if (interaction.guild?.id && interaction.guild.id !== this.config.serverId) return;
         if (interaction.replied || interaction.deferred) return;
+
+        if (interaction.customId === 'verify_role_select') {
+            const selectedRole = interaction.values[0];
+            const availableRoles = this.getAvailableRoles();
+            const rangoNombre = availableRoles[selectedRole] || selectedRole || 'Desconocido';
+
+            const modal = new ModalBuilder()
+                .setCustomId('verify_modal')
+                .setTitle('Formulario de Verificación');
+
+            const nombreICInput = new TextInputBuilder()
+                .setCustomId('verify_nombre_ic')
+                .setLabel('Nombre IC')
+                .setStyle(TextInputStyle.Short)
+                .setPlaceholder('Ej: Jack Martinez')
+                .setRequired(true)
+                .setMinLength(2)
+                .setMaxLength(50);
+
+            const idPersonajeInput = new TextInputBuilder()
+                .setCustomId('verify_id_personaje')
+                .setLabel('ID de Personaje')
+                .setStyle(TextInputStyle.Short)
+                .setPlaceholder('Ej: 69899')
+                .setRequired(true)
+                .setMinLength(1)
+                .setMaxLength(20);
+
+            const rangoInput = new TextInputBuilder()
+                .setCustomId('verify_rango')
+                .setLabel('Rango')
+                .setStyle(TextInputStyle.Short)
+                .setValue(selectedRole)
+                .setRequired(true)
+                .setMaxLength(20);
+
+            const firstRow = new ActionRowBuilder().addComponents(nombreICInput);
+            const secondRow = new ActionRowBuilder().addComponents(idPersonajeInput);
+            const thirdRow = new ActionRowBuilder().addComponents(rangoInput);
+
+            modal.addComponents(firstRow, secondRow, thirdRow);
+
+            try {
+                await interaction.showModal(modal);
+            } catch (err) {
+                console.error(`[${this.getNombreCorto()}] Error showing modal:`, err.message);
+                await interaction.reply({ content: '❌ Error al mostrar el formulario. Intenta de nuevo.', ephemeral: true }).catch(() => {});
+            }
+            return;
+        }
+
         if (interaction.customId !== 'select_rango') return;
-        
+
         const rangoId = interaction.values[0];
         const availableRoles = this.getAvailableRoles();
         const rangoNombre = availableRoles[rangoId] || rangoId || 'Desconocido';
