@@ -94,9 +94,19 @@ function createPanelHandlers(config) {
   });
 
   client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isButton() || interaction.customId !== 'fiestas_verify_open_modal') return;
+    if (!interaction.isButton()) return;
 
-    await interaction.deferReply({ ephemeral: true });
+    const customId = interaction.customId;
+    if (customId !== 'fiestas_verify_open_modal' && customId !== 'verify_open_modal') return;
+
+    console.log(`[FIESTAS][PANEL] Botón de verificación presionado por ${interaction.user.tag}`);
+
+    try {
+      await interaction.deferReply({ ephemeral: true });
+    } catch (err) {
+      console.error(`[FIESTAS][PANEL] Error deferring reply:`, err.message);
+      return;
+    }
 
     const rangoSelectMenu = new StringSelectMenuBuilder()
       .setCustomId('fiestas_verify_role_select')
@@ -105,16 +115,26 @@ function createPanelHandlers(config) {
 
     const rangoRow = new ActionRowBuilder().addComponents(rangoSelectMenu);
 
-    await interaction.editReply({
-      content: '**Selecciona tu rango:**',
-      components: [rangoRow],
-    });
+    try {
+      await interaction.editReply({
+        content: '**Selecciona tu rango:**',
+        components: [rangoRow],
+      });
+    } catch (err) {
+      console.error(`[FIESTAS][PANEL] Error showing select menu:`, err.message);
+      await interaction.editReply({ content: '❌ Error al mostrar el menú. Intenta de nuevo.' }).catch(() => {});
+    }
   });
 
   client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isStringSelectMenu() || interaction.customId !== 'fiestas_verify_role_select') return;
+    if (!interaction.isStringSelectMenu()) return;
+
+    const customId = interaction.customId;
+    if (customId !== 'fiestas_verify_role_select' && customId !== 'verify_role_select') return;
 
     const selectedRole = interaction.values[0];
+
+    console.log(`[FIESTAS][PANEL] Rol seleccionado: ${selectedRole} por ${interaction.user.tag}`);
 
     const modal = new ModalBuilder()
       .setCustomId('fiestas_verify_modal')
@@ -152,62 +172,81 @@ function createPanelHandlers(config) {
 
     modal.addComponents(firstRow, secondRow, thirdRow);
 
-    await interaction.showModal(modal);
+    try {
+      await interaction.showModal(modal);
+    } catch (err) {
+      console.error(`[FIESTAS][PANEL] Error showing modal:`, err.message);
+      await interaction.reply({ content: '❌ Error al mostrar el formulario. Intenta de nuevo.', ephemeral: true }).catch(() => {});
+    }
   });
 
   client.on('interactionCreate', async (interaction) => {
     if (!interaction.isModalSubmit() || interaction.customId !== 'fiestas_verify_modal') return;
 
-    await interaction.deferReply({ ephemeral: true });
+    console.log(`[FIESTAS][PANEL] Modal de verificación recibido de ${interaction.user.tag}`);
 
-    const nombreIC = interaction.fields.getTextInputValue('fiestas_verify_nombre_ic');
-    const idPersonaje = interaction.fields.getTextInputValue('fiestas_verify_id_personaje');
-    const rangoKey = interaction.fields.getTextInputValue('fiestas_verify_rango');
-
-    const rangoSolicitado = roleValueMap[rangoKey] || ROLES.MIEMBRO;
-
-    createVerificationRequest(
-      interaction.user.id,
-      interaction.user.tag,
-      nombreIC,
-      idPersonaje,
-      rangoSolicitado
-    );
-
-    const moderatorChannel = client.channels.cache.get(config.channels.recepcion);
-
-    if (moderatorChannel && moderatorChannel.isTextBased() && !moderatorChannel.isDMBased()) {
-      const requestEmbed = new EmbedBuilder()
-        .setTitle('📋 Nueva Solicitud de Verificación')
-        .setColor(0x3498db)
-        .addFields(
-          { name: 'Usuario', value: `<@${interaction.user.id}>`, inline: true },
-          { name: 'Nombre IC', value: nombreIC, inline: true },
-          { name: 'ID Personaje', value: idPersonaje, inline: true },
-          { name: 'Rango Solicitado', value: rangoSolicitado, inline: true }
-        )
-        .setTimestamp();
-
-      const approveBtn = new ButtonBuilder()
-        .setCustomId(`fiestas_verify_approve_${interaction.user.id}`)
-        .setLabel('Aprobar')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('✅');
-
-      const rejectBtn = new ButtonBuilder()
-        .setCustomId(`fiestas_verify_reject_${interaction.user.id}`)
-        .setLabel('Rechazar')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('❌');
-
-      const row = new ActionRowBuilder().addComponents(approveBtn, rejectBtn);
-
-      await moderatorChannel.send({ embeds: [requestEmbed], components: [row] });
+    try {
+      await interaction.deferReply({ ephemeral: true });
+    } catch (err) {
+      console.error(`[FIESTAS][PANEL] Error deferring modal reply:`, err.message);
+      return;
     }
 
-    await interaction.editReply({
-      content: '✅ Tu solicitud ha sido enviada. Un administrador la revisará pronto.',
-    });
+    try {
+      const nombreIC = interaction.fields.getTextInputValue('fiestas_verify_nombre_ic');
+      const idPersonaje = interaction.fields.getTextInputValue('fiestas_verify_id_personaje');
+      const rangoKey = interaction.fields.getTextInputValue('fiestas_verify_rango');
+
+      console.log(`[FIESTAS][PANEL] Datos: nombreIC=${nombreIC}, idPersonaje=${idPersonaje}, rango=${rangoKey}`);
+
+      const rangoSolicitado = roleValueMap[rangoKey] || ROLES.MIEMBRO;
+
+      createVerificationRequest(
+        interaction.user.id,
+        interaction.user.tag,
+        nombreIC,
+        idPersonaje,
+        rangoSolicitado
+      );
+
+      const moderatorChannel = client.channels.cache.get(config.channels.recepcion);
+
+      if (moderatorChannel && moderatorChannel.isTextBased() && !moderatorChannel.isDMBased()) {
+        const requestEmbed = new EmbedBuilder()
+          .setTitle('📋 Nueva Solicitud de Verificación')
+          .setColor(0x3498db)
+          .addFields(
+            { name: 'Usuario', value: `<@${interaction.user.id}>`, inline: true },
+            { name: 'Nombre IC', value: nombreIC, inline: true },
+            { name: 'ID Personaje', value: idPersonaje, inline: true },
+            { name: 'Rango Solicitado', value: rangoSolicitado, inline: true }
+          )
+          .setTimestamp();
+
+        const approveBtn = new ButtonBuilder()
+          .setCustomId(`fiestas_verify_approve_${interaction.user.id}`)
+          .setLabel('Aprobar')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('✅');
+
+        const rejectBtn = new ButtonBuilder()
+          .setCustomId(`fiestas_verify_reject_${interaction.user.id}`)
+          .setLabel('Rechazar')
+          .setStyle(ButtonStyle.Danger)
+          .setEmoji('❌');
+
+        const row = new ActionRowBuilder().addComponents(approveBtn, rejectBtn);
+
+        await moderatorChannel.send({ embeds: [requestEmbed], components: [row] });
+      }
+
+      await interaction.editReply({
+        content: '✅ Tu solicitud ha sido enviada. Un administrador la revisará pronto.',
+      });
+    } catch (err) {
+      console.error(`[FIESTAS][PANEL] Error processing modal:`, err.message);
+      await interaction.editReply({ content: '❌ Error al procesar la solicitud. Intenta de nuevo.' }).catch(() => {});
+    }
   });
 
   client.on('interactionCreate', async (interaction) => {
@@ -220,6 +259,12 @@ function createPanelHandlers(config) {
       await handleVerifyApprove(interaction, userId, config);
     } else if (customId.startsWith('fiestas_verify_reject_')) {
       const userId = customId.replace('fiestas_verify_reject_', '');
+      await handleVerifyReject(interaction, userId, config);
+    } else if (customId.startsWith('verify_approve_')) {
+      const userId = customId.replace('verify_approve_', '');
+      await handleVerifyApprove(interaction, userId, config);
+    } else if (customId.startsWith('verify_reject_')) {
+      const userId = customId.replace('verify_reject_', '');
       await handleVerifyReject(interaction, userId, config);
     }
   });
